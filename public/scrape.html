@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>封面歌词刮削 - Navidrome 工具</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <nav class="top-nav">
+      <a href="index.html">歌单同步</a>
+      <a href="artists.html">歌手头像</a>
+      <a href="scrape.html" class="active">封面歌词刮削</a>
+    </nav>
+
+    <header>
+      <h1>封面 / 歌词刮削</h1>
+      <p class="subtitle">
+        直接扫描你挂载的音乐目录(不经过 Navidrome),从网易云搜索匹配歌曲,把专辑封面嵌入音频文件,
+        歌词保存为同名 .lrc 文件放在歌曲同目录下。
+        <strong>这会直接修改你的音乐文件,建议先备份再正式跑。</strong>
+      </p>
+    </header>
+
+    <div class="card">
+      <h2>网易云 API 代理</h2>
+      <div class="form-row">
+        <label>API 代理地址</label>
+        <input id="neteaseBase" type="text" placeholder="http://localhost:3000" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>QQ音乐 / 酷我音乐 API 代理(Meting-API)</h2>
+      <p class="dim" style="margin-top:0;">
+        网易云搜不到精确匹配的时候,会自动依次试试 QQ 音乐、酷我音乐。留空则只用网易云一个源。
+      </p>
+      <div class="form-row">
+        <label>Meting API 地址</label>
+        <input id="meetingBase" type="text" placeholder="http://localhost:8080(留空则不启用这两个源)" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>选择要扫描的目录</h2>
+      <p class="dim" style="margin-top:0;">
+        这里的目录是相对你挂载给本工具的那个音乐库根目录(docker-compose.yml 里 MUSIC_LIBRARY_DIR 挂的那个),
+        和 Navidrome 完全无关。留空就是扫描整个根目录。
+      </p>
+      <div class="form-row">
+        <label>扫描目录(相对路径)</label>
+        <input id="scanDir" type="text" placeholder="留空 = 整个音乐库根目录,例如 华语/周杰伦" />
+      </div>
+      <button id="browseBtn" class="link-btn">浏览文件夹选择 ▸</button>
+
+      <div id="browserBox" style="display:none; margin-top:14px;">
+        <div id="breadcrumb" class="dim" style="margin-bottom:8px; font-size:12px;"></div>
+        <div id="dirList" class="playlist-list" style="max-height:240px;"></div>
+        <div style="margin-top:10px;">
+          <button id="useThisDirBtn" class="mini-btn">使用当前这个目录</button>
+          <span id="currentDirInfo" class="dim" style="margin-left:10px;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>刮削选项</h2>
+      <label class="checkbox-row"><input id="optCover" type="checkbox" checked /> 刮封面(嵌入音频文件)</label>
+      <label class="checkbox-row"><input id="optLyrics" type="checkbox" checked /> 刮歌词(保存为同名 .lrc)</label>
+      <label class="checkbox-row"><input id="optOverwrite" type="checkbox" /> 覆盖已有封面/歌词(默认跳过已经有的,只处理缺失的)</label>
+    </div>
+
+    <div class="card">
+      <h2>方式一:手动挑选歌曲</h2>
+      <p class="dim" style="margin-top:0;">
+        先加载扫描目录下的歌曲列表,自己勾选要刮削哪些,比全自动扫描更可控。每一条也可以直接点「手动搜索」
+        单独确认封面/歌词,不用等自动任务跑完。
+      </p>
+      <button id="loadSongsBtn">加载歌曲列表</button>
+      <span id="loadSongsStatus" class="dim" style="margin-left:10px;"></span>
+
+      <div id="songListArea" style="display:none; margin-top:16px;">
+        <div class="bulk-bar">
+          <input id="songNameFilter" type="text" placeholder="按歌名/歌手搜索,快速定位" style="max-width:220px;" />
+          <label class="checkbox-row" style="margin:0;">
+            <input id="songOnlyMissing" type="checkbox" checked />
+            只看缺封面或歌词的
+          </label>
+          <button id="songSelectAllBtn" class="link-btn">全选</button>
+          <button id="songSelectNoneBtn" class="link-btn">全不选</button>
+          <span id="songCount" class="dim"></span>
+        </div>
+        <div id="songList" style="max-height:420px; overflow-y:auto;"></div>
+        <button id="startSelectedBtn" style="margin-top:14px;">刮削选中的歌曲</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>方式二:自动扫描整个目录</h2>
+      <p class="dim" style="margin-top:0;">
+        不用手动挑,直接把上面选的目录整个递归扫一遍处理。
+      </p>
+      <button id="startBtn">开始自动扫描并刮削</button>
+    </div>
+
+    <div class="card">
+      <h2>方式三:自动监控新文件</h2>
+      <p class="dim" style="margin-top:0;">
+        持续盯着某个目录,有新的歌曲文件写入完成后自动刮削封面/歌词,不用手动跑。
+        适合配合下载工具或者网盘同步这种会陆续有新文件进来的场景。
+        只处理"启动监控之后新出现"的文件,已经在库里的歌曲不受影响(那是前面两种方式的事)。
+      </p>
+      <div class="form-row">
+        <label>监控目录(相对路径)</label>
+        <input id="watchDir" type="text" placeholder="留空 = 监控整个音乐库根目录" />
+      </div>
+      <button id="watchStartBtn">开始监控</button>
+      <button id="watchStopBtn" style="display:none;">停止监控</button>
+      <span id="watchStatusText" class="dim" style="margin-left:10px;"></span>
+
+      <div id="watchLogArea" style="display:none; margin-top:16px;">
+        <h3 class="dim" style="font-size:13px; margin:0 0 8px;">最近处理记录</h3>
+        <div id="watchLog" style="max-height:300px; overflow-y:auto; font-size:12px;"></div>
+      </div>
+    </div>
+
+    <div class="card" id="progressCardActions" style="display:none;">
+      <button id="stopBtn">停止</button>
+    </div>
+
+    <div class="card" id="progressCard" style="display:none;">
+      <h2>进度</h2>
+      <div id="progressSummary" class="dim" style="margin-bottom:10px;"></div>
+      <div id="progressCurrent" class="dim"></div>
+      <details style="margin-top:12px;">
+        <summary class="dim" style="cursor:pointer;">出错日志</summary>
+        <div id="errorLog" style="font-size:12px; margin-top:8px; max-height:200px; overflow-y:auto;"></div>
+      </details>
+    </div>
+
+    <div class="card" id="manualCard" style="display:none;">
+      <h2>需要人工确认</h2>
+      <p class="dim" style="margin-top:0;">没搜到精确匹配,或者匹配不唯一的歌曲,列在这里手动处理。</p>
+      <div id="manualList"></div>
+    </div>
+  </div>
+
+  <script src="scrape.js"></script>
+</body>
+</html>

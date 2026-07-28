@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>歌手头像 - Navidrome 工具</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <nav class="top-nav">
+      <a href="index.html">歌单同步</a>
+      <a href="artists.html" class="active">歌手头像</a>
+      <a href="scrape.html">封面歌词刮削</a>
+    </nav>
+
+    <header>
+      <h1>给 Navidrome 歌手补充头像</h1>
+      <p class="subtitle">从 Navidrome 读取歌手列表,去网易云搜同名歌手头像,确认后自动保存到共享文件夹,配合 Navidrome 的 ArtistImageFolder 使用。</p>
+    </header>
+
+    <div class="card">
+      <h2>网易云 API 代理</h2>
+      <div class="form-row">
+        <label>API 代理地址</label>
+        <input id="neteaseBase" type="text" placeholder="http://localhost:3000" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Navidrome 配置</h2>
+      <div class="form-row">
+        <label>服务器地址</label>
+        <input id="navidromeUrl" type="text" placeholder="https://music.xlangnan.cn:9443" />
+      </div>
+      <div class="form-row">
+        <label>用户名</label>
+        <input id="navidromeUsername" type="text" placeholder="admin" />
+      </div>
+      <div class="form-row">
+        <label>密码</label>
+        <input id="navidromePassword" type="password" placeholder="密码" />
+      </div>
+      <button id="loadArtistsBtn">加载歌手列表</button>
+      <span id="loadStatus" class="dim"></span>
+    </div>
+
+    <div class="card" id="artistCard" style="display:none;">
+      <h2>歌手列表</h2>
+      <div class="bulk-bar">
+        <input id="nameFilter" type="text" placeholder="按歌手名搜索,快速定位" style="max-width:220px;" />
+        <label class="checkbox-row" style="margin:0;">
+          <input id="onlyMissing" type="checkbox" checked />
+          只看还没保存头像的
+        </label>
+        <button id="autoMatchBtn">自动匹配未保存的歌手</button>
+        <button id="stopAutoBtn" style="display:none;">停止</button>
+        <span id="artistCount" class="dim"></span>
+      </div>
+      <div id="autoMatchStatus" class="dim" style="margin-bottom:12px;"></div>
+      <div id="artistList"></div>
+    </div>
+  </div>
+
+  <script src="artists.js"></script>
+</body>
+</html>

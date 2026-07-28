@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>网易云 → Navidrome 歌单同步</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <nav class="top-nav">
+      <a href="index.html" class="active">歌单同步</a>
+      <a href="artists.html">歌手头像</a>
+      <a href="scrape.html">封面歌词刮削</a>
+    </nav>
+
+    <header>
+      <h1>网易云歌单 → Navidrome 同步工具</h1>
+      <p class="subtitle">扫码登录你的网易云账号,勾选要同步的歌单,一键同步到 Navidrome。Navidrome 上没有的歌曲会自动跳过。</p>
+    </header>
+
+    <!-- 步骤 1:网易云信息 -->
+    <div class="card">
+      <h2>1. 网易云信息</h2>
+      <div class="form-row">
+        <label>API 代理地址</label>
+        <input id="neteaseBase" type="text" placeholder="http://localhost:3000" />
+      </div>
+      <div class="form-row">
+        <label>你的网易云 UID</label>
+        <input id="neteaseUid" type="text" placeholder="打开个人主页,链接里 ?id= 后面的数字" />
+      </div>
+      <button id="loadPlaylistsBtn">加载我的歌单</button>
+
+      <div class="advanced-toggle">
+        <button id="advancedToggleBtn" class="link-btn">高级选项:手动填 Cookie(用于同步隐私歌单,有账号风控风险)▸</button>
+        <div id="advancedBox" style="display:none;">
+          <div class="form-row">
+            <label>Cookie(可选)</label>
+            <input id="neteaseCookie" type="text" placeholder="留空则只能同步公开歌单,填了才能看到隐私歌单" />
+          </div>
+          <p class="warn-text">
+            填写 Cookie 意味着用你的账号凭证向网易云发请求,近期网易云对第三方客户端/脚本登录风控较严,
+            可能导致账号被临时冻结,请自行评估风险后再使用。
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 步骤 2:歌单勾选 -->
+    <div class="card" id="playlistCard" style="display:none;">
+      <h2>2. 选择要同步的歌单</h2>
+      <div class="playlist-toolbar">
+        <button id="selectAllBtn" class="link-btn">全选</button>
+        <button id="selectNoneBtn" class="link-btn">全不选</button>
+        <span id="playlistLoadStatus" class="dim"></span>
+      </div>
+      <div id="playlistList" class="playlist-list"></div>
+    </div>
+
+    <!-- 步骤 3:Navidrome 配置 -->
+    <div class="card">
+      <h2>3. Navidrome 配置</h2>
+      <div class="form-row">
+        <label>服务器地址</label>
+        <input id="navidromeUrl" type="text" placeholder="https://music.xlangnan.cn:9443" />
+      </div>
+      <div class="form-row">
+        <label>用户名</label>
+        <input id="navidromeUsername" type="text" placeholder="admin" />
+      </div>
+      <div class="form-row">
+        <label>密码</label>
+        <input id="navidromePassword" type="password" placeholder="密码" />
+      </div>
+    </div>
+
+    <!-- 步骤 4:同步 -->
+    <div class="card">
+      <label class="checkbox-row">
+        <input id="dryRun" type="checkbox" />
+        仅预览匹配结果,不创建播放列表(Dry Run)
+      </label>
+      <button id="syncBtn">开始同步选中的歌单</button>
+      <span id="status"></span>
+    </div>
+
+    <!-- 结果 -->
+    <div class="card" id="summaryCard" style="display:none;">
+      <h2>同步结果</h2>
+      <table id="playlistSummaryTable">
+        <thead>
+          <tr>
+            <th>歌单</th>
+            <th>总曲目</th>
+            <th>已匹配</th>
+            <th>状态</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="playlistSummaryBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card" id="resultsCard" style="display:none;">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="matched">已匹配</button>
+        <button class="tab-btn" data-tab="unmatched">未匹配</button>
+        <button class="tab-btn" data-tab="error">出错</button>
+      </div>
+      <table id="resultsTable">
+        <thead>
+          <tr>
+            <th>网易云歌曲</th>
+            <th>艺人</th>
+            <th>匹配到的曲目</th>
+            <th>方式 / 相似度</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

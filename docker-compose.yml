@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  # 网易云 API 代理,提供扫码登录、歌单、歌曲详情等接口
+  # 对外发布了 3000 端口,方便局域网内其他服务(比如 MoviePilot)也能访问到
+  netease-api:
+    image: binaryify/netease_cloud_music_api
+    container_name: netease-api
+    restart: unless-stopped
+    ports:
+      - "3051:3000"
+
+  # Meting-API:统一的多平台音乐接口代理,这里主要用来补充 QQ音乐(tencent)和酷我音乐(kuwo)
+  # 网易云搜不到匹配的时候,封面/歌词刮削功能会自动尝试这两个源
+  # 对外发布了 8080 端口,方便局域网内其他服务(比如 MoviePilot)也能访问到
+  meting-api:
+    image: ghcr.io/metowolf/meting-api:latest
+    container_name: meting-api
+    restart: unless-stopped
+    environment:
+      # 必须填成外部能访问到的地址,Meting-API 用它来拼生成封面/歌词的回调链接
+      # 换成你的 NAS 局域网 IP,端口要跟下面 ports 左边那个对上
+      - METING_URL=http://192.168.15.71:8091
+      # 只是内部签名用的密钥,随便改成一串自己的字符串就行,不需要对外暴露
+      - METING_TOKEN=change-this-token
+    ports:
+      - "8091:80"
+
+  # 同步工具本体:Web 界面 + 后端
+  sync-tool:
+    build: .
+    container_name: netease-navidrome-sync
+    restart: unless-stopped
+    ports:
+      # 冒号左边是宿主机端口,右边是容器内部端口(固定 3001,不用改)
+      # 如果宿主机 3001 端口被占用,把左边的 3001 换成别的空闲端口即可,例如 "3011:3001"
+      - "3021:3001"
+    # 硬性内存上限,不管什么情况都不会超过这个数;正常跑起来只需要几十 MB,
+    # 512m 已经很宽裕了,如果你的库特别大导致 OOM 可以适当调大
+    mem_limit: 512m
+    environment:
+      # 同一个 docker 网络内部,继续用服务名访问,比走宿主机 IP 绕一圈更快
+      - DEFAULT_NETEASE_BASE=http://netease-api:3000
+      - DEFAULT_METING_BASE=http://meting-api:80
+      - ARTIST_IMAGE_DIR=/data/artist-images
+      - MUSIC_LIBRARY_DIR=/music
+      # 自动监控新文件:容器启动时就常驻监控,不用手动去网页点"开始监控"
+      - WATCH_AUTO_START=true
+      # 监控目录,相对 MUSIC_LIBRARY_DIR;留空 = 监控整个音乐库根目录
+      - WATCH_DIR=
+      - WATCH_COVER=true
+      - WATCH_LYRICS=true
+      # 访问密码:设置了才会启用,不设置就跟以前一样不需要密码
+      # 浏览器访问时会弹出账号密码框,账号随便填,密码填这里配置的值
+      - ACCESS_PASSWORD=B090320b
+      # 钉钉机器人通知(可选):webhook 地址填完整的,包含 access_token 参数
+      - DINGTALK_WEBHOOK=https://oapi.dingtalk.com/robot/send?access_token=5b5facf356168ddb27379d16a32b6e3a91f59820d369f239d8c8cd8943408054
+      # 如果钉钉机器人安全设置选的是"加签",这里填那个密钥;选"自定义关键词"或"IP段"的话留空
+      - DINGTALK_SECRET=SECb8d0047f0bb5d27c6b863f6680a4faf8702403da0e0014c04856e08018c1e7a8
+      # 各环节通知开关,默认都开,不想要某个通知就改成 false
+      - NOTIFY_PLAYLIST_SYNC=true
+      - NOTIFY_SCRAPE_DONE=true
+      - NOTIFY_WATCH_NEW_FILE=true
+    volumes:
+      # 歌手头像会存到这个目录,需要把同一个宿主机目录也挂载给 Navidrome
+      # (在 Navidrome 的 compose 里加同样的 volumes,并设置 ND_ARTISTIMAGEFOLDER 指向那边的挂载路径)
+      - /volume1/docker/navidrome2/netease-navidrome-sync/artist-images:/data/artist-images
+      # 封面/歌词刮削需要直接读写音乐文件本身,和 Navidrome 完全独立,不经过 Navidrome 的接口
+      # 这里只要挂载你实际存放音乐文件的那个宿主机目录就行,换成你自己的路径
+      # 注意不能加 :ro,因为需要写入权限(嵌入封面、生成 .lrc)
+      - /volume4/媒体文件4/音乐/源:/music
+    depends_on:
+      - netease-api
+      - meting-api

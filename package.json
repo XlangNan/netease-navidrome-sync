@@ -1,0 +1,16 @@
+{
+  "name": "netease-navidrome-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "把网易云歌单同步到 Navidrome 播放列表,自动跳过匹配不到的歌曲",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "axios": "^1.7.2",
+    "node-taglib-sharp": "^6.0.3",
+    "chokidar": "^3.6.0"
+  }
+}
