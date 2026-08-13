@@ -54,9 +54,9 @@ services:
       # 浏览器访问时会弹出账号密码框,账号随便填,密码填这里配置的值
       - ACCESS_PASSWORD=B090320b
       # 钉钉机器人通知(可选):webhook 地址填完整的,包含 access_token 参数
-      - DINGTALK_WEBHOOK=https://oapi.dingtalk.com/robot/send?access_token=5b5facf356168ddb27379d16a32b6e3a91f59820d369f239d8c8cd8943408054
+      - DINGTALK_WEBHOOK=
       # 如果钉钉机器人安全设置选的是"加签",这里填那个密钥;选"自定义关键词"或"IP段"的话留空
-      - DINGTALK_SECRET=SECb8d0047f0bb5d27c6b863f6680a4faf8702403da0e0014c04856e08018c1e7a8
+      - DINGTALK_SECRET=
       # 各环节通知开关,默认都开,不想要某个通知就改成 false
       - NOTIFY_PLAYLIST_SYNC=true
       - NOTIFY_SCRAPE_DONE=true
